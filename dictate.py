@@ -119,22 +119,26 @@ def on_release(key: Key) -> None:
 
 def _get_active_window(env: dict) -> tuple[str, str]:
     """Return (window_id, wm_class_lower) for the currently focused window."""
-    try:
-        win_id = subprocess.check_output(
-            ["xdotool", "getwindowfocus"],
-            env=env, timeout=2, stderr=subprocess.DEVNULL,
-        ).decode().strip()
-        cls = subprocess.check_output(
-            ["xdotool", "getwindowclassname", win_id],
-            env=env, timeout=2, stderr=subprocess.DEVNULL,
-        ).decode().strip().lower()
-        return win_id, cls
-    except subprocess.CalledProcessError as exc:
-        print(f"[live-dictation] getwindowfocus failed (code {exc.returncode})", flush=True)
-        return "", ""
-    except Exception as exc:
-        print(f"[live-dictation] _get_active_window error: {exc}", flush=True)
-        return "", ""
+    for cmd in (
+        ["xdotool", "getwindowfocus"],       # EWMH _NET_ACTIVE_WINDOW
+        ["xdotool", "getwindowfocus", "-f"],  # XGetInputFocus — works for terminals
+    ):
+        try:
+            win_id = subprocess.check_output(
+                cmd, env=env, timeout=2, stderr=subprocess.DEVNULL,
+            ).decode().strip()
+            cls = subprocess.check_output(
+                ["xdotool", "getwindowclassname", win_id],
+                env=env, timeout=2, stderr=subprocess.DEVNULL,
+            ).decode().strip().lower()
+            return win_id, cls
+        except subprocess.CalledProcessError:
+            continue
+        except Exception as exc:
+            print(f"[live-dictation] _get_active_window error: {exc}", flush=True)
+            return "", ""
+    print("[live-dictation] getwindowfocus failed — assuming terminal", flush=True)
+    return "", "unknown-terminal"
 
 
 def inject_text(text: str) -> None:
@@ -149,7 +153,7 @@ def inject_text(text: str) -> None:
     }
     try:
         win_id, cls = _get_active_window(env)
-        is_term = cls in TERMINAL_CLASSES or cls.startswith("st-")
+        is_term = cls in TERMINAL_CLASSES or cls.startswith("st-") or cls == "unknown-terminal"
         paste_key = "ctrl+shift+v" if is_term else "ctrl+v"
         print(f"[live-dictation] window class={cls!r} is_term={is_term} paste_key={paste_key}", flush=True)
 
