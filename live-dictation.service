@@ -1,0 +1,21 @@
+[Unit]
+Description=Live dictation daemon (push-to-talk via Right Ctrl)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/home/mperrone/projects/voice-to-text/.venv/bin/python \
+          /home/mperrone/projects/voice-to-text/dictate.py
+Restart=on-failure
+RestartSec=5s
+PassEnvironment=DISPLAY XAUTHORITY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR
+Environment=LD_LIBRARY_PATH=/home/mperrone/projects/voice-to-text/.venv/lib/python3.12/site-packages/nvidia/cublas/lib:/home/mperrone/projects/voice-to-text/.venv/lib/python3.12/site-packages/nvidia/cuda_runtime/lib:/home/mperrone/projects/voice-to-text/.venv/lib/python3.12/site-packages/nvidia/cuda_nvrtc/lib
+
+MemoryMax=800M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=live-dictation
+
+[Install]
+WantedBy=graphical-session.target
