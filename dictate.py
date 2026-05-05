@@ -19,6 +19,8 @@ CHANNELS = 1
 DTYPE = "float32"
 MODEL_SIZE = "small"
 MIN_AUDIO_SAMPLES = 8000   # 0.5 s — prevents hallucination on silence
+SUPPORTED_LANGUAGES = {"pt", "en"}
+LANGUAGE_FALLBACK = "pt"
 PRE_TYPE_SLEEP = 0.15      # let X11 process the Ctrl key-up before xdotool fires
 
 # xdotool WM_CLASS values for terminal emulators — these use Ctrl+Shift+V to paste
@@ -198,8 +200,31 @@ def transcription_worker() -> None:
                     "speech_pad_ms": 200,
                 },
             )
-            # segments is a lazy generator — iterate to drive inference
+            # segments is a lazy generator — iterate to drive inference; info.language
+            # is only reliable after the generator is exhausted
             text = "".join(seg.text for seg in segments).strip()
+
+            if info.language not in SUPPORTED_LANGUAGES:
+                print(
+                    f"[live-dictation] Unsupported language detected ({info.language} "
+                    f"{info.language_probability:.0%}); re-transcribing with "
+                    f"language={LANGUAGE_FALLBACK!r}.",
+                    flush=True,
+                )
+                segments, info = model.transcribe(
+                    audio_flat,
+                    language=LANGUAGE_FALLBACK,
+                    task="transcribe",
+                    beam_size=2,
+                    best_of=1,
+                    temperature=0.0,
+                    vad_filter=True,
+                    vad_parameters={
+                        "min_silence_duration_ms": 300,
+                        "speech_pad_ms": 200,
+                    },
+                )
+                text = "".join(seg.text for seg in segments).strip()
 
             print(
                 f"[live-dictation] [{info.language} {info.language_probability:.0%}] {text!r}",
