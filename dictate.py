@@ -20,7 +20,7 @@ DTYPE = "float32"
 MODEL_SIZE = "small"
 MIN_AUDIO_SAMPLES = 8000   # 0.5 s — prevents hallucination on silence
 SUPPORTED_LANGUAGES = {"pt", "en"}
-LANGUAGE_FALLBACK = "pt"
+LANGUAGE_FALLBACK = {"pt", "en"}
 PRE_TYPE_SLEEP = 0.15      # let X11 process the Ctrl key-up before xdotool fires
 
 # xdotool WM_CLASS values for terminal emulators — these use Ctrl+Shift+V to paste
